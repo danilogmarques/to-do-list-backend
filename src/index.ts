@@ -3,6 +3,7 @@ import cors from 'cors'
 import { db } from './database/knex'
 import { ERROR } from 'sqlite3'
 import { TuserDB } from './types'
+import { TTaskDB } from './types'
 
 const app = express()
 
@@ -144,5 +145,110 @@ app.post("/users", async (req: Request, res: Response) => {
         }
     }
 })
+
+app.get("/tasks", async (req: Request, res: Response) => {
+    try {
+        const searchTerm = req.query.q as string | undefined 
+
+        if (searchTerm === undefined) {
+            const result = await db("tasks")
+            res.status(200).send(result)
+        } else {
+            const result = await db("tasks")
+            .where("title", "LIKE", `%${searchTerm}%`)
+            .orWhere("description", "LIKE", `%${searchTerm}%`)
+            
+            res.status(200).send(result)
+        }
+
+    } catch (error) {
+        console.log(error)
+
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+    }
+})
+
+app.post("/tasks", async (req: Request, res: Response) => {
+    try {
+        const { id, title, description } = req.body
+
+        if (typeof id !== "string" ) {
+            res.status(400)
+            throw new Error("'id' deve ser string")
+        } 
+
+        if (id.length < 4) {
+            res.status(400)
+            throw new Error("'id' deve possuir pelo menos 4 caracteres")
+        }
+
+        if (typeof title !== "string" ) {
+            res.status(400)
+            throw new Error("'id' name ser string")
+        }
+        
+        if (title.length < 4) {
+            res.status(400)
+            throw new Error("'name' deve possuir pelo menos 4 caracteres")
+        }
+
+        if (typeof description !== "string" ) {
+            res.status(400)
+            throw new Error("'password' name ser string")
+        }
+    
+        const [ taskIdAlreadyExistis ]: TTaskDB[] | undefined[] = await db("tasks").where({ id })
+
+        if (taskIdAlreadyExistis) {
+            res.status(400)
+            throw new Error("'id' já existe")
+        }
+
+        const newTask = {
+            id,
+            title,
+            description
+        }
+
+        await db("tasks").insert(newTask)
+
+        const [ insertedTask ] = await db("tasks").where({ id })
+
+        res.status(201).send({
+            message: "task criada com sucesso",
+            task: insertedTask
+        })
+
+    } catch (error) {
+        console.log(error)
+
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+    }
+})
+
+
+
+        
+       
+        
+        
+    
+
 
 
