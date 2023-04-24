@@ -1,4 +1,4 @@
-export type TuserDB = {
+export type TUserDB = {
     id: string,
     name: string,
     email: string,
